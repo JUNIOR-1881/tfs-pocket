@@ -1,0 +1,140 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "sqlite"
+ url = env("DATABASE_URL")
+}
+enum Role {
+ CUSTOMER
+ ADMIN
+ REVIEWER
+}
+enum ApplicationStatus {
+ DRAFT
+ SUBMITTED
+ VERIFICATION_PENDING
+ ADDITIONAL_INFO_REQUIRED
+ AFFORDABILITY_REVIEW
+ APPROVED
+ DECLINED
+ OFFER_AWAITING_ACCEPTANCE
+ AGREEMENT_AWAITING_SIGNATURE
+ AWAITING_DISBURSEMENT
+ DISBURSED
+ WITHDRAWN
+ CANCELLED
+}
+enum PaymentStatus {
+ PENDING
+ CONFIRMED
+ FAILED
+ REVERSED
+}
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ passwordHash String
+ role Role @default(CUSTOMER)
+ emailVerifiedAt DateTime?
+ createdAt DateTime @default(now())
+ profile CustomerProfile?
+ applications LoanApplication[]
+ auditLogs AuditLog[]
+ consents Consent[]
+}
+model CustomerProfile {
+ id String @id @default(cuid())
+ userId String @unique
+ legalName String?
+ phone String?
+ residentialAddress String?
+ institution String?
+ studentNumber String?
+ user User @relation(fields:[userId],references:[id])
+}
+model LoanProduct {
+ id String @id @default(cuid())
+ name String
+ description String
+ active Boolean @default(false)
+ minCents Int
+ maxCents Int
+ periodsJson String
+ pricingJson String
+ effectiveFrom DateTime @default(now())
+ createdAt DateTime @default(now())
+ applications LoanApplication[]
+}
+model LoanApplication {
+ id String @id @default(cuid())
+ reference String @unique
+ userId String
+ productId String?
+ status ApplicationStatus @default(DRAFT)
+ requestedCents Int?
+ periodMonths Int?
+ personalJson String?
+ financialJson String?
+ submittedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ user User @relation(fields:[userId],references:[id])
+ product LoanProduct? @relation(fields:[productId],references:[id])
+ history ApplicationStatusHistory[]
+ documents Document[]
+}
+model ApplicationStatusHistory {
+ id String @id @default(cuid())
+ applicationId String
+ status ApplicationStatus
+ note String?
+ actorId String?
+ createdAt DateTime @default(now())
+ application LoanApplication @relation(fields:[applicationId],references:[id])
+}
+model Document {
+ id String @id @default(cuid())
+ applicationId String
+ name String
+ storageKey String
+ mimeType String
+ createdAt DateTime @default(now())
+ application LoanApplication @relation(fields:[applicationId],references:[id])
+}
+model Consent {
+ id String @id @default(cuid())
+ userId String
+ type String
+ version String
+ acceptedAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id])
+}
+model AuditLog {
+ id String @id @default(cuid())
+ actorId String
+ action String
+ subjectType String
+ subjectId String
+ metadata String?
+ createdAt DateTime @default(now())
+ actor User @relation(fields:[actorId],references:[id])
+}
+model SupportTicket {
+ id String @id @default(cuid())
+ userId String?
+ email String
+ subject String
+ message String
+ status String @default("OPEN")
+ createdAt DateTime @default(now())
+}
+model Payment {
+ id String @id @default(cuid())
+ applicationId String?
+ amountCents Int
+ status PaymentStatus
+ providerRef String?
+ idempotencyKey String @unique
+ createdAt DateTime @default(now())
+}

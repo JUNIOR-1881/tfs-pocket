@@ -1,0 +1,1 @@
+import {Calculator} from '@/components/Calculator'; export default function Page(){return <main className="wrap section"><Calculator/><p className="notice">Do not rely on this demonstration estimate for a credit decision. Live terms are unavailable until approved pricing is configured.</p></main>}
